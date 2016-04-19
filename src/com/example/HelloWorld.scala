@@ -4,6 +4,8 @@ import java.util.{Date, Locale}
 import com.example.Complex
 import com.example.mytraits.BaseA
 
+import scala.collection.immutable.IndexedSeq
+
 
 object HelloWorld extends BaseA {
   def main(arg: Array[String]): Unit = {
@@ -29,16 +31,80 @@ object HelloWorld extends BaseA {
     tuplefun(ee = "my explicitly param passed by field name")
 
     testingTraitsExample
-
     tupleShorthand
+    loopGuard
+
+    // Functional combinators (eg. map fn): https://twitter.github.io/scala_school/collections.html
+    println("Map List 1 to 10 with even values doubled:")
+    var myList = 1 to 10
+    myList.map(doubleOnEven).foreach(println)
+
+    println("Filter List 1 to 10 with even only:")
+    var myList2 = 1 to 10
+    myList2.filter(evenOnly).foreach(println)
+
+    println("Filter List 1 to 10 with even only (shorthand):")
+    val shortEvenOnly = (someVal: Int) => someVal % 2 == 0
+    myList2.filter(shortEvenOnly).foreach(println)
+
+    println("partition is link filter, but keeps the discarded list as IndexedSeq and return everything in tuple")
+    var myList3 = 1 to 10
+    val partitionedList: (IndexedSeq[Int], IndexedSeq[Int]) = myList3.partition(shortEvenOnly)
+    partitionedList.productIterator.foreach(println)
+
+    println("Folding with curry")
+    println("folding left 5")
+    var foldList = 1 to 5
+    println( foldList.foldLeft(0){ (a: Int, b: Int) => println(a); a + b } ) // accumulator in a, new var in b
+    println("folding right 5")
+    println( foldList.foldRight(0){ (a: Int, b: Int) => println(a); a + b } ) // accumulator in b, new var in a
+
+//    val myList = List("one", "two")
+    println("printing big list flatten...")
+    val bigList = List(myList, myList2)
+    println(bigList.flatten) // flatten does not change original, but return a new one
+
+    val mappedAndFlatList = bigList.flatMap(x => x.map(_ * 2))
+    println("mapped and flatten list: " + mappedAndFlatList)
+    println("drop '2' (longest predicate match): " + mappedAndFlatList.dropWhile((x:Int) => x == 2))
+    println("drop '2' (longest predicate match): " + mappedAndFlatList.dropWhile(_ == 2))
+    println("doesn't drop '4' (longest predicate match): " + mappedAndFlatList.dropWhile(_ == 4))
+
+  }
+
+
+  def loopGuard: Unit = {
+    println("for loop with guards, double each even number 10 or less")
+    val listItems = for {
+      i <- 1 to 20
+      if (i <= 10 && i % 2 == 0)
+    } yield i * 2
+    println("list items are : " + listItems)
+  }
+
+  def evenOnly(someVal: Int): Boolean = {
+    someVal % 2 == 0
+  }
+
+  def doubleOnEven(someVal: Int): String = {
+    if (someVal % 2 == 0) {
+      (someVal * 2) + " (doubled)"
+    } else {
+      someVal.toString
+    }
   }
 
   def tupleShorthand: Unit = {
-    val simpleQuery = "somekey" -> "some_details" -> "more" // "more" is ignored, its always shorthand for tuple2
+    // BEWARE: it assigned them tail first!
+    val simpleQuery = "somekey" -> "some_details" -> "more" // "more" is second item, its always shorthand for tuple2
+
     println("what type is simpleQuery? " + simpleQuery)
     simpleQuery.productIterator.foreach(println)
     println("What class is it? " + simpleQuery.getClass)
     simpleQuery.productIterator.foreach(i => println("item: " + i))
+
+    println("first item: " + simpleQuery._1)
+    println("second item: " + simpleQuery._2)
   }
 
   def testingTraitsExample: Unit = {
