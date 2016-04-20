@@ -32,8 +32,19 @@ object HelloWorld extends BaseA {
 
     testingTraitsExample
     tupleShorthand
-    loopGuard
+    collectionsCombinators
 
+    val add3 = adder(3, _:Int) // "_ is the unamed magical wildcard"
+    print("partial function adder: " + add3(2))
+
+
+  }
+
+  def adder(a: Int, b: Int): Int = {
+    a + b
+  }
+
+  def collectionsCombinators: Unit = {
     // Functional combinators (eg. map fn): https://twitter.github.io/scala_school/collections.html
     println("Map List 1 to 10 with even values doubled:")
     var myList = 1 to 10
@@ -55,23 +66,28 @@ object HelloWorld extends BaseA {
     println("Folding with curry")
     println("folding left 5")
     var foldList = 1 to 5
-    println( foldList.foldLeft(0){ (a: Int, b: Int) => println(a); a + b } ) // accumulator in a, new var in b
+    println(foldList.foldLeft(0) { (a: Int, b: Int) => println(a); a + b }) // accumulator in a, new var in b
     println("folding right 5")
-    println( foldList.foldRight(0){ (a: Int, b: Int) => println(a); a + b } ) // accumulator in b, new var in a
+    println(foldList.foldRight(0) { (a: Int, b: Int) => println(a); a + b }) // accumulator in b, new var in a
 
-//    val myList = List("one", "two")
+    //    val myList = List("one", "two")
     println("printing big list flatten...")
     val bigList = List(myList, myList2)
     println(bigList.flatten) // flatten does not change original, but return a new one
 
     val mappedAndFlatList = bigList.flatMap(x => x.map(_ * 2))
-    println("mapped and flatten list: " + mappedAndFlatList)
-    println("drop '2' (longest predicate match): " + mappedAndFlatList.dropWhile((x:Int) => x == 2))
+    println("mapped and flatten list: " + mappedAndFlatList) // MAP is not FILTER
+
+    //See:  http://stackoverflow.com/questions/19352030/why-list-dropwhile-doesnt-work
+    println("drop '2' (longest predicate match): " + mappedAndFlatList.dropWhile((x: Int) => x == 2))
     println("drop '2' (longest predicate match): " + mappedAndFlatList.dropWhile(_ == 2))
     println("doesn't drop '4' (longest predicate match): " + mappedAndFlatList.dropWhile(_ == 4))
 
+    // Use with map (with some case matching) is just like a List of Tuple2
+    val myMap = Map(1 -> "one", 2 -> "two", 3 -> "three")
+    val newMap = myMap.filter({ case (myKey: Int, myVal: String) => myKey >= 2 })
+    println("filtered map = " + newMap)
   }
-
 
   def loopGuard: Unit = {
     println("for loop with guards, double each even number 10 or less")
