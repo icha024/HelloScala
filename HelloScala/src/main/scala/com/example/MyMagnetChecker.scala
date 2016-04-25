@@ -30,4 +30,5 @@ object MyMagnetChecker extends App {
 
   // Magnet pattern = Instead of method overloading, we use one big pojo with variable amount of fields.
   // Then instead of messy if/else checks on each field of the big pojo to run different init, we use 'implicit' method feature of Scala.
+  // Details: http://spray.io/blog/2012-12-13-the-magnet-pattern/
 }

@@ -26,4 +26,5 @@ object MyCake extends App {
   val svc2 = new MyServiceTrait with SqlDao
   println("svc2 using SQL DI returns: " + svc2.Imp)
 
+  // More details:  http://www.cakesolutions.net/teamblogs/2011/12/19/cake-pattern-in-depth
 }
