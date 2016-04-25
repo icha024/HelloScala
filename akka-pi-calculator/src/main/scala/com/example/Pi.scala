@@ -1,8 +1,9 @@
 package com.example
 
-import akka.actor.Actor
-import akka.actor._
+import akka.actor.{Actor, _}
 import akka.event.Logging
+import akka.routing.RoundRobinPool
+
 import scala.concurrent.duration._
 
 object Pi extends App {
@@ -37,9 +38,10 @@ object Pi extends App {
     var nrOfResults: Int = _
     val start: Long = System.currentTimeMillis
 
-    val workerRouter = context.actorOf(
-      Props[Worker], "workerRouter")
+//    val workerRouter = context.actorOf(
+//      Props[Worker], "workerRouter")
 //      Props[Worker].withRouter(RoundRobinRouter(nrOfWorkers)), name = "workerRouter")
+    val workerRouter = context.actorOf(RoundRobinPool(nrOfWorkers).props(Props[Worker]), "workerRouter")
 
     def receive = {
       case Calculate =>

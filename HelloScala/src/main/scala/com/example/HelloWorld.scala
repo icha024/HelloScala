@@ -35,8 +35,11 @@ object HelloWorld extends BaseA {
     collectionsCombinators
 
     val add3 = adder(3, _:Int) // "_ is the unamed magical wildcard"
-    print("partial function adder: " + add3(2))
+    println("partial function adder: " + add3(2))
 
+    var myThing = { println("call something inside")
+    "this should return"}
+    println("printing: " + myThing);
 
   }
 
