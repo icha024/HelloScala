@@ -2,6 +2,8 @@ package com.example
 
 import akka.actor.Actor
 import akka.actor._
+import akka.event.Logging
+import scala.concurrent.duration._
 
 object Pi extends App {
 
@@ -56,10 +58,13 @@ object Pi extends App {
   }
 
   class Listener extends Actor {
+    val log = Logging(context.system, this)
+    context.setReceiveTimeout(10 milliseconds) // 10.milliseconds()
     def receive = {
       case PiApproximation(pi, duration) =>
         println("\n\tPi approximation: \t\t%s\n\tCalculation time: \t%s"
           .format(pi, duration))
+        log.info(s"Calculation completed, Pi is $pi (calculation time: $duration)")
         context.system.shutdown()
     }
   }
