@@ -19,6 +19,12 @@ object MyMagnetChecker extends App {
       override def apply(): Result = "Type is a String: " + myVal
       override def getRes: Result = "String type: " + myVal
     }
+
+    implicit def convertFromTwoString(myTuple: (String, String)) = new MyMagnet {
+      override type Result = String
+      override def apply(): Result = "Type is a String type 2: " + myTuple._1 + ", " + myTuple._2
+      override def getRes: Result = "String2 type: " + myTuple._1 + ", " + myTuple._2
+    }
   }
 
   def findStickyType(mag: MyMagnet): Unit = {
@@ -27,6 +33,7 @@ object MyMagnetChecker extends App {
 
   findStickyType("abc"); // create 'MyMagnet' with String constructor
   findStickyType(123);   // create 'MyMagnet' with Int constructor
+  findStickyType("xyz","ijk");   // create 'MyMagnet' with (String, String) tuple constructor
 
   // Magnet pattern = Instead of method overloading, we use one big pojo with variable amount of fields.
   // Then instead of messy if/else checks on each field of the big pojo to run different init, we use 'implicit' method feature of Scala.
