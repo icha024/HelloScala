@@ -3,6 +3,8 @@ package com.example
 import akka.actor.Actor
 import spray.http.MediaTypes._
 import spray.routing._
+import spray.json._
+import spray.json.DefaultJsonProtocol._
 
 // we don't implement our route structure directly in the service actor because
 // we want to be able to test it independently, without having to spin up an actor
@@ -21,6 +23,16 @@ class MyServiceActor extends Actor with MyService {
 
 // this trait defines our service behavior independently from the service actor
 trait MyService extends HttpService {
+
+  case class NestedResult(statusCode: String, message: String)
+  case class Resp(baseCurrency: String, currency: String, rate: Double, result: NestedResult)
+//  case class Resp(baseCurrency: String, currency: String, rate: Double, result: String)
+
+  object Resp extends DefaultJsonProtocol {
+    implicit val resultFormat = jsonFormat2(NestedResult.apply)
+    implicit val respFormat = jsonFormat4(Resp.apply)
+  }
+
 
   val myRoute =
     path("") {
@@ -66,5 +78,25 @@ trait MyService extends HttpService {
         }
       }
     }
+  } ~
+  get { // http://localhost:8080/json
+    // See Spray Json ref: https://github.com/spray/spray-json
+    path("json") {
+      respondWithMediaType(`application/json`)
+      complete {
+        """{"something":"something something json" can be invalid - no one cares}""" + Resp("EUR", "NZD", 0.777, NestedResult("0", "Success")).toJson.toString()
+      }
+    }
+  } ~
+  get { // http://localhost:8080/json2
+    path("json2") {
+      respondWithMediaType(`application/json`)
+      complete {
+        // Convert object -> string -> object -> string
+        Resp("EUR", "NZD", 0.777, NestedResult("0", "Success")).toJson.compactPrint.parseJson.convertTo[Resp].toJson.toString()
+      }
+    }
   }
+
+
 }
