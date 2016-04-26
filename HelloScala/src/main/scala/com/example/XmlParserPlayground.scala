@@ -55,4 +55,32 @@ object XmlParserPlayground extends App {
     val rate = eachCube \ "@rate"
     println(s"Currency: $currency with Rate: $rate")
   }
+
+  // Do it all properly
+  var currencyMap = (for {
+    eachCube <- cubeArray \ "Cube"
+    currency <- eachCube \ "@currency"
+    rate <- eachCube \ "@rate"
+  } yield (currency.toString -> rate.toString.toDouble)).toMap
+
+  println("Currecy map type: " + currencyMap)
+
+  currencyMap += ("EUR" -> 1.0)
+
+  println("Currency map: ")
+  currencyMap.foreach( {case (k,v) => println("key: " + k + " value: " + v)})
+//  currencyMap.toMap.foreach(println)
+
+  println("NZD/GBP is: " + currencyMap("GBP")/currencyMap("NZD"))
+  println("NZD/INVALID is: " + convertRate("NZD", "INVALID", currencyMap))
+  println("NZD/EUR is: " + convertRate("NZD", "EUR", currencyMap))
+
+
+  def convertRate(target: String, base: String, curMap: Map[String,Double]): String = {
+    if (!(curMap.isDefinedAt(base)) || !(curMap.isDefinedAt(target))) {
+      "<undefined>"
+    } else {
+      (curMap(base) / curMap(target)).toString
+    }
+  }
 }
