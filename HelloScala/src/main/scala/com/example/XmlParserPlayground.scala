@@ -2,7 +2,7 @@ package com.example
 
 object XmlParserPlayground extends App {
 
-  // Play with XML: http://www.codecommit.com/blog/scala/working-with-scalas-xml-support
+  // Play with XML, see: http://www.codecommit.com/blog/scala/working-with-scalas-xml-support
 
   val eRates = <gesmes:Envelope xmlns:gesmes="http://www.gesmes.org/xml/2002-08-01" xmlns="http://www.ecb.int/vocabulary/2002-08-01/eurofxref">
     <gesmes:subject>Reference rates</gesmes:subject>
