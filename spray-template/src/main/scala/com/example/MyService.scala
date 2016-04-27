@@ -28,7 +28,6 @@ class MyServiceActor extends Actor with MyService {
   def receive = runRoute(myRoute)
 }
 
-
 // this trait defines our service behavior independently from the service actor
 trait MyService extends HttpService {
   // Brings in all the Akka context and implicit values.
@@ -36,12 +35,6 @@ trait MyService extends HttpService {
 
   case class NestedResult(statusCode: String, message: String)
   case class Resp(baseCurrency: String, currency: String, rate: Double, result: NestedResult)
-
-  val cache: Cache[Map[String, Double]] = LruCache(timeToLive = 5 minutes)
-//  def cachedOp[T](key: T): Future[Map[String, Double]] = cache(key) {
-  def cachedOp: Future[Map[String, Double]] = cache() {
-    fetchCurrencies
-  }
 
   object Resp extends DefaultJsonProtocol {
     implicit val resultFormat = jsonFormat2(NestedResult.apply)
@@ -124,13 +117,19 @@ trait MyService extends HttpService {
           respondWithMediaType(`application/json`)
 //          (baseCurrency, targetCurrency) => complete{
 //          (baseCurrency, targetCurrency) => onSuccess(fetchCurrencies) {
-            (baseCurrency, targetCurrency) => onComplete(cachedOp) { // We can pass in a Future directly via onComplete()
+            (baseCurrency, targetCurrency) => onComplete(cachedFetchCurrencies) { // We can pass in a Future directly via onComplete()
               currencyMap => complete(
                 Resp(baseCurrency, targetCurrency, convertRate(baseCurrency, targetCurrency, currencyMap.get), NestedResult("0", "Success")).toJson.prettyPrint
               )
             }
         }
       }
+
+  val cache: Cache[Map[String, Double]] = LruCache(timeToLive = 5 minutes)
+
+  def cachedFetchCurrencies: Future[Map[String, Double]] = cache() {
+    fetchCurrencies
+  }
 
   def fetchCurrencies: Future[Map[String, Double]] = {
     //see: https://www.implicitdef.com/2015/11/19/comparing-scala-http-client-libraries.html
