@@ -7,6 +7,7 @@ import spray.http.MediaTypes._
 import spray.http.{Uri, _}
 import spray.json._
 import spray.routing._
+import spray.caching._
 
 import scala.concurrent._
 import scala.concurrent.ExecutionContext
@@ -31,13 +32,17 @@ class MyServiceActor extends Actor with MyService {
 
 // this trait defines our service behavior independently from the service actor
 trait MyService extends HttpService {
+  // Brings in all the Akka context and implicit values.
   this: MyServiceActor =>
 
-  // Brings in all the Akka context and implicit values.
-
   case class NestedResult(statusCode: String, message: String)
-
   case class Resp(baseCurrency: String, currency: String, rate: Double, result: NestedResult)
+
+  val cache: Cache[Map[String, Double]] = LruCache()
+//  def cachedOp[T](key: T): Future[Map[String, Double]] = cache(key) {
+  def cachedOp: Future[Map[String, Double]] = cache() {
+    fetchCurrencies
+  }
 
   object Resp extends DefaultJsonProtocol {
     implicit val resultFormat = jsonFormat2(NestedResult.apply)
@@ -120,7 +125,7 @@ trait MyService extends HttpService {
 //          (baseCurrency, targetCurrency) => onSuccess(fetchCurrencies) { // We can pass in a Future directly via onComplete()
 //          (baseCurrency, targetCurrency) => complete{ // We can pass in a Future directly via onComplete()
 
-            (baseCurrency, targetCurrency) => onComplete(fetchCurrencies) { // We can pass in a Future directly via onComplete()
+            (baseCurrency, targetCurrency) => onComplete(cachedOp) { // We can pass in a Future directly via onComplete()
 
 
             //see: https://www.implicitdef.com/2015/11/19/comparing-scala-http-client-libraries.html
@@ -143,7 +148,10 @@ trait MyService extends HttpService {
             //                println(s"OK, received ${response.entity.asString(HttpCharsets.`UTF-8`)}")
             //                println(s"The response header Content-Length was ${response.header[HttpHeaders.`Content-Length`]}")
             //              }
-            currencyMap => complete(Resp(baseCurrency, targetCurrency, convertRate(baseCurrency, targetCurrency, currencyMap.get), NestedResult("0", "Success")).toJson.prettyPrint
+
+
+              currencyMap => complete(Resp(baseCurrency, targetCurrency, convertRate(baseCurrency, targetCurrency, currencyMap.get), NestedResult("0", "Success")).toJson.prettyPrint
+
 
 //            case Success(Some(currencyMap)) => complete(Resp(baseCurrency, targetCurrency, convertRate(baseCurrency, targetCurrency, currencyMap), NestedResult("0", "Success")).toJson.prettyPrint)
 //            case Failure(ex) => Resp(baseCurrency, targetCurrency, convertRate(baseCurrency, targetCurrency, currencyMap), NestedResult("0", "Success")).toJson.prettyPrint
