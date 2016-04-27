@@ -139,8 +139,8 @@ trait MyService extends HttpService {
       // Building the request
       Get(
         Uri(
-          "https://s3-eu-west-1.amazonaws.com/web-dist/eurofxref-daily.xml"
-//          "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml"
+//          "https://s3-eu-west-1.amazonaws.com/web-dist/eurofxref-daily.xml"
+          "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml"
         )
         //                .withQuery("some_parameter" -> "some_value", "some_other_parameter" -> "some_other_value")
       )
