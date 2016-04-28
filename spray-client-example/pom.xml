@@ -1,0 +1,73 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>com.example</groupId>
+  <artifactId>spray-client-example</artifactId>
+  <version>1.0-SNAPSHOT</version>
+  <packaging>jar</packaging>
+
+  <name>spray-client-example</name>
+  <url>http://maven.apache.org</url>
+
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <spray.version>1.3.2</spray.version>
+  </properties>
+
+  <dependencies>
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <version>3.8.1</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.typesafe.akka</groupId>
+      <artifactId>akka-actor_2.11</artifactId>
+      <version>2.4.4</version>
+    </dependency>
+
+    <!--"io.spray"            %%  "spray-can"     % sprayV,-->
+    <!--"io.spray"            %%  "spray-routing" % sprayV,-->
+    <!--"io.spray"            %%  "spray-json"    % sprayV,-->
+    <!--"io.spray"            %%  "spray-caching" % sprayV,-->
+    <!--"io.spray"            %%  "spray-client"  % sprayV,-->
+    <dependency>
+      <groupId>io.spray</groupId>
+      <artifactId>spray-can_2.11</artifactId>
+      <version>${spray.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.spray</groupId>
+      <artifactId>spray-routing_2.11</artifactId>
+      <version>${spray.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.spray</groupId>
+      <artifactId>spray-json_2.11</artifactId>
+      <version>${spray.version}</version>
+    </dependency>
+    <!--<dependency>-->
+      <!--<groupId>io.spray</groupId>-->
+      <!--<artifactId>spray-caching_2.11</artifactId>-->
+      <!--<version>${spray.version}</version>-->
+    <!--</dependency>-->
+    <dependency>
+      <groupId>io.spray</groupId>
+      <artifactId>spray-client_2.11</artifactId>
+      <version>${spray.version}</version>
+    </dependency>
+
+  </dependencies>
+
+  <!--<repositories>-->
+    <!--<repository>-->
+      <!--<id>akka-snapshots</id>-->
+      <!--<snapshots>-->
+        <!--<enabled>true</enabled>-->
+      <!--</snapshots>-->
+      <!--<url>http://repo.akka.io/snapshots/</url>-->
+    <!--</repository>-->
+  <!--</repositories>-->
+</project>
