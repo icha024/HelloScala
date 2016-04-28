@@ -26,8 +26,8 @@ object ElevationJsonProtocol extends DefaultJsonProtocol { // Remember, these ar
 //  implicit val elevationFormat = jsonFormat2(Elevation) // Same as the .apply version
   implicit val elevationFormat = jsonFormat2(Elevation.apply)
 
-//  implicit def googleApiResultFormat[T :JsonFormat] = jsonFormat2(GoogleApiResult.apply[T])
-  implicit val googleApiResultFormat = jsonFormat2(GoogleApiResult.apply[Elevation]) // This also works!
+  implicit def googleApiResultFormat[T :JsonFormat] = jsonFormat2(GoogleApiResult.apply[T]) // Original
+//  implicit val googleApiResultFormat = jsonFormat2(GoogleApiResult.apply[Elevation]) // This also works!
 
 //  implicit val googleApiResultFormat = jsonFormat2(GoogleApiResult.apply) // Wont compile, T not inferred
 //  implicit val googleApiResultFormat[Elevation] = jsonFormat2(GoogleApiResult.apply[Elevation]) // Won't compile
@@ -38,7 +38,7 @@ object ElevationJsonProtocol extends DefaultJsonProtocol { // Remember, these ar
   /** For generic type basics see: https://twitter.github.io/scala_school/type-basics.html
     * Probably because type need to be 'nailed down' at the time of invocation (?!)
     *
-    * My understanding, the implicit magnet needs to be initilized for it to start attracting metal and make things stick to it.
+    * My understanding, the implicit magnet needs to be initialized for it to start attracting metal and make things stick to it.
     * That is why we need to nail down the type in magnets, can't leave it loosely defined.
     */
 }
@@ -58,12 +58,18 @@ object Main extends App {
 
   import ElevationJsonProtocol._
   import SprayJsonSupport._
+  // ~ is route concat, and ~> is for pipeline concat/assembly.
+  // But where are the list of valid implicit variables each pipeline stage can expect to be defined/available ?????
+  // See Spray 'Request Builder' and 'Response Transformation':
+  // Doc: http://spray.io/documentation/1.1.2/spray-httpx/request-building/#requestbuilding
+  // Doc: http://spray.io/documentation/1.1.2/spray-httpx/response-transformation/
+  // Code: https://github.com/spray/spray/blob/master/spray-httpx/src/main/scala/spray/httpx/RequestBuilding.scala
   val pipeline = sendReceive ~> unmarshal[GoogleApiResult[Elevation]] // type 'T' is Elevation
 //  val pipeline = sendReceive ~> unmarshal[GoogleApiResult] // This would work if we did't use generic
 
   val responseFuture = pipeline {
     Get("http://maps.googleapis.com/maps/api/elevation/json?locations=27.988056,86.925278&sensor=false")
-//    Get("http://maps.example.com/maps/api/elevation/json?locations=27.988056,86.925278&sensor=false") // invalid domain
+//    Get("http://maps.example.com/maps/api/elevation/json?locations=27.988056,86.925278&sensor=false") // doc not found
 //    Get("https://s3-eu-west-1.amazonaws.com/web-dist/elevation2.json") // unexpected json element name
 
 /**    Proper response looks like this: */
@@ -97,7 +103,7 @@ object Main extends App {
       shutdown()
   }
 
-  // Probably don't need to shutdown every request  if we have a long running server (?)
+  // Probably don't need to shutdown every request if we have a long running server (?)
   def shutdown(): Unit = {
     IO(Http).ask(Http.CloseAll)(1.second).await
     system.shutdown()
