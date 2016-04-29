@@ -13,7 +13,7 @@ import spray.httpx.SprayJsonSupport
 import spray.client.pipelining._
 import spray.util._
 
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{Await, ExecutionContext}
 
 // Define JSON object for unmarshalling
 case class Elevation(location: Location, elevation: Double)
@@ -26,8 +26,8 @@ object ElevationJsonProtocol extends DefaultJsonProtocol { // Remember, these ar
 //  implicit val elevationFormat = jsonFormat2(Elevation) // Same as the .apply version
   implicit val elevationFormat = jsonFormat2(Elevation.apply)
 
-  implicit def googleApiResultFormat[T :JsonFormat] = jsonFormat2(GoogleApiResult.apply[T]) // Original
-//  implicit val googleApiResultFormat = jsonFormat2(GoogleApiResult.apply[Elevation]) // This also works!
+//  implicit def googleApiResultFormat[T :JsonFormat] = jsonFormat2(GoogleApiResult.apply[T]) // Original
+  implicit val googleApiResultFormat = jsonFormat2(GoogleApiResult.apply[Elevation]) // This also works!
 
 //  implicit val googleApiResultFormat = jsonFormat2(GoogleApiResult.apply) // Wont compile, T not inferred
 //  implicit val googleApiResultFormat[Elevation] = jsonFormat2(GoogleApiResult.apply[Elevation]) // Won't compile
@@ -103,7 +103,7 @@ object Main extends App {
       shutdown()
   }
 
-  // Probably don't need to shutdown every request if we have a long running server (?)
+  // Probably don't need to shutdown every request if we have a long running server
   def shutdown(): Unit = {
     IO(Http).ask(Http.CloseAll)(1.second).await
     system.shutdown()

@@ -1,14 +1,16 @@
 package com.example
 
 import akka.actor.Actor
+import scala.util.{Success, Failure}
 import spray.caching._
 import spray.client.pipelining._
 import spray.http.MediaTypes._
 import spray.http.{Uri, _}
 import spray.json._
 import spray.routing._
-import scala.concurrent.duration._
+import spray.http.StatusCodes._
 
+import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, _}
 import scala.xml.XML
 
@@ -115,13 +117,36 @@ trait MyService extends HttpService {
         // http://localhost:8080/convert/NZD/GBP
         path("convert" / Segment / Segment) {
           respondWithMediaType(`application/json`)
-//          (baseCurrency, targetCurrency) => complete{
-//          (baseCurrency, targetCurrency) => onSuccess(fetchCurrencies) {
-            (baseCurrency, targetCurrency) => onComplete(cachedFetchCurrencies) { // We can pass in a Future directly via onComplete()
-              currencyMap => complete(
-                Resp(baseCurrency, targetCurrency, convertRate(baseCurrency, targetCurrency, currencyMap.get), NestedResult("0", "Success")).toJson.prettyPrint
+          //          (baseCurrency, targetCurrency) => complete{
+          //          (baseCurrency, targetCurrency) => onSuccess(fetchCurrencies) {
+
+          //            (baseCurrency, targetCurrency) => onComplete(cachedFetchCurrencies) { // We can pass in a Future directly via onComplete()
+          //              currencyMap => complete(
+          //                Resp(baseCurrency, targetCurrency, convertRate(baseCurrency, targetCurrency, currencyMap.get), NestedResult("0", "Success")).toJson.prettyPrint
+          //              )
+          //            }
+
+
+          //          (baseCurrency, targetCurrency) => onComplete(cachedFetchCurrencies) {
+          ////            cachedFetchCurrencies
+          //          }
+
+
+          //            case Sucess(result) => cachedFetchCurrencies
+          //          }
+
+          (baseCurrency, targetCurrency) => onComplete(fetchCurrencies) {
+
+            case Success(currencyMap) => complete(
+                          Resp(baseCurrency, targetCurrency, convertRate(baseCurrency, targetCurrency, currencyMap), NestedResult("0", "Success")).toJson.prettyPrint
               )
-            }
+            case Failure(ex) => complete(InternalServerError, "Something went wrong: " + ex) // Probably hide error in prod
+
+            /** This works, but doesn't handle errors. */
+//            currencyMap => complete(
+//              Resp(baseCurrency, targetCurrency, convertRate(baseCurrency, targetCurrency, currencyMap.get), NestedResult("0", "Success")).toJson.prettyPrint
+//            )
+          }
         }
       }
 
