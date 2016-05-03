@@ -1,8 +1,9 @@
+package com.github.icha024
+
 import java.text.DateFormat
 import java.util.{Date, Locale}
 
-import com.example.Complex
-import com.example.mytraits.BaseA
+import com.github.icha024.mytraits.BaseA
 
 import scala.collection.immutable.IndexedSeq
 

@@ -1,4 +1,4 @@
-package com.example;
+package com.github.icha024;
 
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.RecursiveAction;

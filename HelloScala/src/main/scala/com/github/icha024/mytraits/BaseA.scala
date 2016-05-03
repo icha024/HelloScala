@@ -1,4 +1,4 @@
-package com.example.mytraits
+package com.github.icha024.mytraits
 
 trait BaseA {
     def draw(): Unit = {

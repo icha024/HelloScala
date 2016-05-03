@@ -1,4 +1,4 @@
-package com.example
+package com.github.icha024
 
 import akka.actor.Actor
 
@@ -143,12 +143,23 @@ trait MyService extends HttpService {
         // http://localhost:8080/convert/NZD/GBP/13
         path("convert" / Segment / Segment / Segment) {
           respondWithMediaType(`application/json`)
+
           (baseCurrency, targetCurrency, currencyAmount) =>  {
-            try {
-              val currencyAmountDouble = currencyAmount.toDouble
-              convertFromCachedCurrencyMap(baseCurrency, targetCurrency, currencyAmountDouble)
-            } catch {
-              case nfe: NumberFormatException => complete(InternalServerError, "Invalid amount") // "Invalid amount" is the text response going back the wire
+
+            detach() { // Detach the future to another EC (remember we have 1 sec blocking delay in cache service)
+              println("Processing currency conversion request: " + DateTime.now)
+  //            try {
+  //              println("Processing currency conversion request: " + DateTime.now)
+  //              val currencyAmountDouble = currencyAmount.toDouble
+  //              convertFromCachedCurrencyMap(baseCurrency, targetCurrency, currencyAmountDouble)
+  //            } catch {
+  //              case nfe: NumberFormatException => complete(InternalServerError, "Invalid amount") // "Invalid amount" is the text response going back the wire
+  //            }
+
+              Try(currencyAmount.toDouble) match {
+                case Success(amount) => convertFromCachedCurrencyMap(baseCurrency, targetCurrency, amount)
+                case Failure(ex) => complete(InternalServerError, "Invalid amount") // "Invalid amount" is the text response going back the wire
+              }
             }
           }
 

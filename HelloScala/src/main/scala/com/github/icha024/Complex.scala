@@ -1,4 +1,4 @@
-package com.example
+package com.github.icha024
 
 class Complex (var real: Double, var imaginary: Double) {
   def re = real

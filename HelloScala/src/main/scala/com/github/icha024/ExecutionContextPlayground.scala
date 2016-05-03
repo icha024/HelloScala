@@ -1,4 +1,4 @@
-package com.example
+package com.github.icha024
 
 import java.util.concurrent.atomic.AtomicInteger
 

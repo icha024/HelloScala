@@ -1,4 +1,4 @@
-package com.example
+package com.github.icha024
 
 object MyMagnetChecker extends App {
   trait MyMagnet { // should probably be sealed

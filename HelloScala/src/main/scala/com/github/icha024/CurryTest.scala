@@ -1,4 +1,4 @@
-package com.example
+package com.github.icha024
 
 object CurryTest extends App {
   def filter(xs: List[Int], p: Int => Boolean): List[Int] =

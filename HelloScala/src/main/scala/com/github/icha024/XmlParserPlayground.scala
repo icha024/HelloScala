@@ -1,4 +1,4 @@
-package com.example
+package com.github.icha024
 
 object XmlParserPlayground extends App {
 
