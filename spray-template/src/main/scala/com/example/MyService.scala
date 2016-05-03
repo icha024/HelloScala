@@ -43,6 +43,8 @@ trait MyService extends HttpService {
     implicit val respFormat = jsonFormat4(Resp.apply)
   }
 
+  val myThing = "abc"
+
   val myRoute =
     path("") {
       get {
@@ -66,7 +68,15 @@ trait MyService extends HttpService {
         // http://localhost:8080/ping
         path("ping") {
           complete {
-            <html>pong</html>
+
+            println("Responding from: " + this.self)
+            /**
+              * Delay in handling response - this proves Spray uses single thread listener, instead of new anonymous
+              * actor (or future) per request. Makes sense because it's a trait bounded to the self-type annotated actor.
+              * Now when we have RoundRobinPool of size 2, we can see the actor instance alternate as expected.
+              */
+            Thread.sleep(1000)
+            <html>pong ref { this.self }</html>
           }
         }
       } ~

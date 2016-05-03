@@ -4,6 +4,7 @@ import akka.actor.{ActorSystem, Props}
 import akka.io.IO
 import spray.can.Http
 import akka.pattern.ask
+import akka.routing.RoundRobinPool
 import akka.util.Timeout
 
 import scala.concurrent.ExecutionContext
@@ -15,7 +16,9 @@ object Boot extends App {
   implicit val system = ActorSystem("on-spray-can")
 
   // create and start our service actor
-  val service = system.actorOf(Props[MyServiceActor], "demo-service")
+//  val service = system.actorOf(Props[MyServiceActor], "demo-service")
+  val nrOfServices = 2
+  val service = system.actorOf(RoundRobinPool(nrOfServices).props(Props[MyServiceActor]), "demo-service")
 
   implicit val timeout = Timeout(5.seconds)
   // start a new HTTP server on port 8080 with our service actor as the handler

@@ -14,7 +14,6 @@ object CurryTest extends App {
   println(filter(nums, modN(3)))
 
   println("8 % 4 = " + modN(4)(8))
-  println("8 % 4 = " + modN(4)(8))
 
   def finalFn(i: Int, partialModFn: (Int) => Boolean): Any = partialModFn(i)
 
