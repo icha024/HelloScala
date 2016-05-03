@@ -1,7 +1,8 @@
 package com.example
 
 import akka.actor.Actor
-import scala.util.{Success, Failure}
+
+import scala.util.{Failure, Success, Try}
 import spray.caching._
 import spray.client.pipelining._
 import spray.http.MediaTypes._
@@ -9,10 +10,12 @@ import spray.http.{Uri, _}
 import spray.json._
 import spray.routing._
 import spray.http.StatusCodes._
+import spray.routing.directives.CachingDirectives
 
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, _}
 import scala.xml.XML
+import spray.routing.directives.CachingDirectives._
 
 // we don't implement our route structure directly in the service actor because
 // we want to be able to test it independently, without having to spin up an actor
@@ -43,7 +46,7 @@ trait MyService extends HttpService {
     implicit val respFormat = jsonFormat4(Resp.apply)
   }
 
-  val myThing = "abc"
+  val simpleCache = routeCache(maxCapacity = 1000, timeToIdle = Duration("5 min"))
 
   val myRoute =
     path("") {
@@ -94,11 +97,16 @@ trait MyService extends HttpService {
       get {
         // http://localhost:8080/greet?name=ian
         path("greet") {
-          parameter('name) {
-            (firstName) => complete {
-              <html>Greeting with param to
-                {firstName}
-              </html>
+          // Caching at this level still works for *some*.
+          CachingDirectives.cache(simpleCache) { // Delegates to cache control (See: http://spray.io/documentation/1.2.3/spray-routing/caching-directives/cache/)
+            println("doing work with xml (nocache)") // This will neven be printed with with no cache
+            parameter('name) {
+              (firstName) => complete {
+                println("more work with xml on complete (nocache)") // This invoked everytime (?)
+                <html>Greeting with param to
+                  {firstName}
+                </html>
+              }
             }
           }
         }
@@ -107,9 +115,12 @@ trait MyService extends HttpService {
         // http://localhost:8080/json
         // See Spray Json ref: https://github.com/spray/spray-json
         path("json") {
-          respondWithMediaType(`application/json`)
-          complete {
-            """{"something":"something something json" can be invalid - no one cares}""" + Resp("EUR", "NZD", 0.777, NestedResult("0", "Success")).toJson.toString()
+          CachingDirectives.alwaysCache(simpleCache) { // Forces caching
+            respondWithMediaType(`application/json`)
+            complete {
+              println("Do some json work (nocache hit)")
+              """{"something":"something something json" can be invalid - no one cares}""" + Resp("EUR", "NZD", 0.777, NestedResult("0", "Success")).toJson.toString()
+            }
           }
         }
       } ~
@@ -127,6 +138,20 @@ trait MyService extends HttpService {
         // http://localhost:8080/convert/NZD/GBP
         path("convert" / Segment / Segment) {
           respondWithMediaType(`application/json`)
+          (baseCurrency, targetCurrency) => convertFromCachedCurrencyMap(baseCurrency, targetCurrency, 1.0)
+        } ~
+        // http://localhost:8080/convert/NZD/GBP/13
+        path("convert" / Segment / Segment / Segment) {
+          respondWithMediaType(`application/json`)
+          (baseCurrency, targetCurrency, currencyAmount) =>  {
+            try {
+              val currencyAmountDouble = currencyAmount.toDouble
+              convertFromCachedCurrencyMap(baseCurrency, targetCurrency, currencyAmountDouble)
+            } catch {
+              case nfe: NumberFormatException => complete(InternalServerError, "Invalid amount") // "Invalid amount" is the text response going back the wire
+            }
+          }
+
           //          (baseCurrency, targetCurrency) => complete{
           //          (baseCurrency, targetCurrency) => onSuccess(fetchCurrencies) {
 
@@ -145,24 +170,47 @@ trait MyService extends HttpService {
           //            case Sucess(result) => cachedFetchCurrencies
           //          }
 
-          (baseCurrency, targetCurrency) => onComplete(fetchCurrencies) {
+//          (baseCurrency, targetCurrency, currencyAmount) => onComplete(fetchCurrencies) {
+//          (baseCurrency, targetCurrency, currencyAmount) => onComplete(cachedFetchCurrencies) {
+//
+//            case Success(currencyMap) => complete(
+//                  Resp(baseCurrency, targetCurrency, convertRate(baseCurrency, targetCurrency, currencyMap, Option(currencyAmount.toDouble)), NestedResult("0", "Success")).toJson.prettyPrint
+//              )
+//            case Failure(ex) => complete(InternalServerError, "Something went wrong: " + ex) // Probably hide error in prod
+//
+//            /** This works, but doesn't handle errors. */
+////            currencyMap => complete(
+////              Resp(baseCurrency, targetCurrency, convertRate(baseCurrency, targetCurrency, currencyMap.get), NestedResult("0", "Success")).toJson.prettyPrint
+////            )
+//          }
 
-            case Success(currencyMap) => complete(
-                          Resp(baseCurrency, targetCurrency, convertRate(baseCurrency, targetCurrency, currencyMap), NestedResult("0", "Success")).toJson.prettyPrint
-              )
-            case Failure(ex) => complete(InternalServerError, "Something went wrong: " + ex) // Probably hide error in prod
-
-            /** This works, but doesn't handle errors. */
-//            currencyMap => complete(
-//              Resp(baseCurrency, targetCurrency, convertRate(baseCurrency, targetCurrency, currencyMap.get), NestedResult("0", "Success")).toJson.prettyPrint
-//            )
-          }
         }
       }
+
+  def convertFromCachedCurrencyMap(baseCurrency: String, targetCurrency: String, currencyAmount: Double): Route = onComplete(cachedFetchCurrencies) {
+
+    case Success(currencyMap) => complete(
+      Resp(baseCurrency, targetCurrency, convertRate(baseCurrency, targetCurrency, currencyMap, Option(currencyAmount.toDouble)), NestedResult("0", "Success")).toJson.prettyPrint
+    )
+    case Failure(ex) => complete(InternalServerError, "Something went wrong: " + ex) // Probably hide error in prod
+
+    /** This works, but doesn't handle errors. */
+    //            currencyMap => complete(
+    //              Resp(baseCurrency, targetCurrency, convertRate(baseCurrency, targetCurrency, currencyMap.get), NestedResult("0", "Success")).toJson.prettyPrint
+    //            )
+  }
 
   val cache: Cache[Map[String, Double]] = LruCache(timeToLive = 5 minutes)
 
   def cachedFetchCurrencies: Future[Map[String, Double]] = cache() {
+    Thread.sleep(1000) // can trigger timeout on server if < 1sec.
+    // Handle using error handler, see: http://spray.io/documentation/1.2.3/spray-routing/key-concepts/timeout-handling/
+    /** The limit to wait for server is set in application.conf:
+         spray.can.server {
+          request-timeout = 2s
+        }
+      */
+
     fetchCurrencies
   }
 
@@ -200,11 +248,11 @@ trait MyService extends HttpService {
       }
   }
 
-  def convertRate(target: String, base: String, curMap: Map[String, Double]): Double = {
+  def convertRate(target: String, base: String, curMap: Map[String, Double], currencyAmount: Option[Double]): Double = {
     if (!(curMap.isDefinedAt(base)) || !(curMap.isDefinedAt(target))) {
       0.0 // Invalid base / or target rate. TODO: handle this proeprly
     } else {
-      (curMap(base) / curMap(target))
+      (curMap(base) / curMap(target) * currencyAmount.getOrElse(1.0))
     }
   }
 }
