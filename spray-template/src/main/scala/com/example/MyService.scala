@@ -188,10 +188,11 @@ trait MyService extends HttpService {
       }
 
   def convertFromCachedCurrencyMap(baseCurrency: String, targetCurrency: String, currencyAmount: Double): Route = onComplete(cachedFetchCurrencies) {
-
-    case Success(currencyMap) => complete(
-      Resp(baseCurrency, targetCurrency, convertRate(baseCurrency, targetCurrency, currencyMap, Option(currencyAmount.toDouble)), NestedResult("0", "Success")).toJson.prettyPrint
-    )
+    case Success(currencyMap) =>
+      Try(convertRate(baseCurrency, targetCurrency, currencyMap, Option(currencyAmount.toDouble))) match {
+        case Success(rate) => complete(Resp(baseCurrency, targetCurrency, rate, NestedResult("0", "Success")).toJson.prettyPrint)
+        case Failure(e) => complete(InternalServerError, "Error in the conversion: " + e.getMessage)
+      }
     case Failure(ex) => complete(InternalServerError, "Something went wrong: " + ex) // Probably hide error in prod
 
     /** This works, but doesn't handle errors. */
@@ -250,7 +251,7 @@ trait MyService extends HttpService {
 
   def convertRate(target: String, base: String, curMap: Map[String, Double], currencyAmount: Option[Double]): Double = {
     if (!(curMap.isDefinedAt(base)) || !(curMap.isDefinedAt(target))) {
-      0.0 // Invalid base / or target rate. TODO: handle this proeprly
+      throw new IllegalArgumentException("Currency requested was not available")
     } else {
       (curMap(base) / curMap(target) * currencyAmount.getOrElse(1.0))
     }
