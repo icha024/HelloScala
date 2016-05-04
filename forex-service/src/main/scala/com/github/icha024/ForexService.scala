@@ -63,12 +63,18 @@ trait ForexService extends HttpService {
   def convertFromCachedCurrencyMap(baseCurrency: String, targetCurrency: String, currencyAmount: String = "1.0"): Route =
     onSuccess(
       cachedFetchCurrencies.map(
-        currencyMap =>
-          Try((currencyMap(baseCurrency) / currencyMap(targetCurrency) * currencyAmount.toDouble).toString)
-            recover {
-            case ex => log.error("Error converting currency: " + ex.getMessage, ex)
-              "Error converting currency"
-          } get))(rate => complete(rate))
+        currencyMap => calculateRate(currencyMap, baseCurrency, targetCurrency, currencyAmount)))(rate => complete(rate))
+
+  def calculateRate(currencyMap: Map[String, Double], baseCurrency: String, targetCurrency: String, currencyAmount: String): String = {
+    Try((currencyMap(baseCurrency) / currencyMap(targetCurrency) * currencyAmount.toDouble).toString) recover {
+      case ex: NumberFormatException => log.error("Error parsing amount: " + ex.getMessage, ex)
+        "Error parsing amount"
+      case ex: NoSuchElementException => log.error("Currency symbol not available: " + ex.getMessage, ex)
+        "Currency symbol not available"
+      case ex => log.error("Error converting currency: " + ex.getMessage, ex)
+        "Error converting currency"
+    } get
+  }
 
   val cache: Cache[Map[String, Double]] = LruCache(timeToLive = 8 hour)
 
