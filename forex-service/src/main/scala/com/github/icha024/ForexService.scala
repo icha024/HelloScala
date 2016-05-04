@@ -42,9 +42,7 @@ trait ForexService extends HttpService {
       get {
         respondWithMediaType(`text/plain`) {
           // XML is marshalled to `text/xml` by default, so we simply override here
-          complete {
-            "Up"
-          }
+          complete("Up")
         }
       }
     } ~
@@ -52,35 +50,46 @@ trait ForexService extends HttpService {
         // http://localhost:8080/NZD/GBP
         path(Segment / Segment) {
           respondWithMediaType(`text/plain`)
-          (baseCurrency, targetCurrency) => convertFromCachedCurrencyMap(baseCurrency, targetCurrency, 1.0)
+          (baseCurrency, targetCurrency) => convertFromCachedCurrencyMap(baseCurrency, targetCurrency)
         } ~
           // http://localhost:8080/NZD/GBP/13
           path(Segment / Segment / Segment) {
             respondWithMediaType(`text/plain`)
             (baseCurrency, targetCurrency, currencyAmount) => {
-              detach() {
-                // Detach the future to another EC (remember we have 1 sec blocking delay in cache service)
-                Try(currencyAmount.toDouble) match {
-                  case Success(amount) => convertFromCachedCurrencyMap(baseCurrency, targetCurrency, amount)
-                  case Failure(ex) => log.error("Invalid amount", ex)
-                    complete(InternalServerError, "Invalid amount") // "Invalid amount" is the text response going back the wire
-                }
-              }
+              convertFromCachedCurrencyMap(baseCurrency, targetCurrency, currencyAmount)
+              //                // Detach the future to another EC (remember we have 1 sec blocking delay in cache service)
+              //                Try(currencyAmount.toDouble) match {
+              //                  case Success(amount) => convertFromCachedCurrencyMap(baseCurrency, targetCurrency, amount)
+              //                  case Failure(ex) => log.error("Invalid amount", ex)
+              //                    complete(InternalServerError, "Invalid amount") // "Invalid amount" is the text response going back the wire
+              //                }
             }
           }
       }
 
-  def convertFromCachedCurrencyMap(baseCurrency: String, targetCurrency: String, currencyAmount: Double): Route = onComplete(cachedFetchCurrencies) {
-    case Success(currencyMap) =>
-      Try(convertRate(baseCurrency, targetCurrency, currencyMap, currencyAmount)) match {
-        case Success(rate) => complete(rate.toString)
-        case Failure(e) => log.error("Error in conversion", e)
-          complete(InternalServerError, "Error in the conversion.")
+  def convertFromCachedCurrencyMap(baseCurrency: String, targetCurrency: String, currencyAmount: String = "1.0"): Route =
+    onComplete(
+      cachedFetchCurrencies.map(
+        currencyMap =>
+          Try(convertRate(baseCurrency, targetCurrency, currencyMap, currencyAmount.toDouble).toString)
+            recover {
+            case ex: Exception => log.error("Error converting currency: " + ex.getMessage, ex);
+              "Error converting currency"
+          } get)) {
+      case Success(rate: String) => complete(rate)
+      case Failure(ex) => log.error("Error in converting", ex)
+        complete(InternalServerError, "Error in converting currency")
+    }
 
-      }
-    case Failure(ex) => log.error("Error getting currency map", ex)
-      complete(InternalServerError, "Error getting currency map")
-  }
+  //  def calculateRate(baseCurrency: String, targetCurrency: String, currencyAmount: String = "1.0"): Future[String] = {
+  //    cachedFetchCurrencies.map(
+  //      currencyMap =>
+  //        Try(convertRate(baseCurrency, targetCurrency, currencyMap, currencyAmount.toDouble).toString)
+  //          recover {
+  //          case ex: Exception => log.error("Error converting currency: " + ex.getMessage, ex);
+  //            "Error converting currency"
+  //        } get)
+  //  }
 
   val cache: Cache[Map[String, Double]] = LruCache(timeToLive = 8 hour)
 
@@ -93,17 +102,15 @@ trait ForexService extends HttpService {
     pipeline(
       Get(
         Uri(
-          "https://s3-eu-west-1.amazonaws.com/web-dist/eurofxref-daily.xml"  // Test URL
+          "https://s3-eu-west-1.amazonaws.com/web-dist/eurofxref-daily.xml" // Test URL
           // "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml"  // Live URL
         )
       )
     )
       .map { response =>
         val currencyXmlResponse: String = response.entity.asString(HttpCharsets.`UTF-8`)
-        if (response.status.isFailure) {
-          sys.error(s"Received unexpected status ${response.status} : ${currencyXmlResponse}")
-        }
-        println(s"OK, received ${currencyXmlResponse}")
+        if (response.status.isFailure) log.error(s"Received unexpected status ${response.status} : ${currencyXmlResponse}")
+        log.info(s"OK, received ${currencyXmlResponse}")
         val cubeArray = XML.loadString(currencyXmlResponse) \ "Cube" \ "Cube"
         var currencyMap = (for {
           eachCube <- cubeArray \ "Cube"
