@@ -5,13 +5,12 @@ import akka.event.Logging
 import spray.caching._
 import spray.client.pipelining._
 import spray.http.MediaTypes._
-import spray.http.StatusCodes._
 import spray.http.{Uri, _}
 import spray.routing._
 
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, _}
-import scala.util.{Failure, Success, Try}
+import scala.util.Try
 import scala.xml.XML
 
 // we don't implement our route structure directly in the service actor because
@@ -57,47 +56,23 @@ trait ForexService extends HttpService {
             respondWithMediaType(`text/plain`)
             (baseCurrency, targetCurrency, currencyAmount) => {
               convertFromCachedCurrencyMap(baseCurrency, targetCurrency, currencyAmount)
-              //                // Detach the future to another EC (remember we have 1 sec blocking delay in cache service)
-              //                Try(currencyAmount.toDouble) match {
-              //                  case Success(amount) => convertFromCachedCurrencyMap(baseCurrency, targetCurrency, amount)
-              //                  case Failure(ex) => log.error("Invalid amount", ex)
-              //                    complete(InternalServerError, "Invalid amount") // "Invalid amount" is the text response going back the wire
-              //                }
             }
           }
       }
 
   def convertFromCachedCurrencyMap(baseCurrency: String, targetCurrency: String, currencyAmount: String = "1.0"): Route =
-    onComplete(
+    onSuccess(
       cachedFetchCurrencies.map(
         currencyMap =>
-          Try(convertRate(baseCurrency, targetCurrency, currencyMap, currencyAmount.toDouble).toString)
+          Try((currencyMap(baseCurrency) / currencyMap(targetCurrency) * currencyAmount.toDouble).toString)
             recover {
-            case ex: Exception => log.error("Error converting currency: " + ex.getMessage, ex);
+            case ex => log.error("Error converting currency: " + ex.getMessage, ex)
               "Error converting currency"
-          } get)) {
-      case Success(rate: String) => complete(rate)
-      case Failure(ex) => log.error("Error in converting", ex)
-        complete(InternalServerError, "Error in converting currency")
-    }
-
-  //  def calculateRate(baseCurrency: String, targetCurrency: String, currencyAmount: String = "1.0"): Future[String] = {
-  //    cachedFetchCurrencies.map(
-  //      currencyMap =>
-  //        Try(convertRate(baseCurrency, targetCurrency, currencyMap, currencyAmount.toDouble).toString)
-  //          recover {
-  //          case ex: Exception => log.error("Error converting currency: " + ex.getMessage, ex);
-  //            "Error converting currency"
-  //        } get)
-  //  }
+          } get))(rate => complete(rate))
 
   val cache: Cache[Map[String, Double]] = LruCache(timeToLive = 8 hour)
 
   def cachedFetchCurrencies: Future[Map[String, Double]] = cache() {
-    fetchCurrencies
-  }
-
-  def fetchCurrencies: Future[Map[String, Double]] = {
     val pipeline = sendReceive
     pipeline(
       Get(
@@ -106,28 +81,20 @@ trait ForexService extends HttpService {
           // "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml"  // Live URL
         )
       )
-    )
-      .map { response =>
-        val currencyXmlResponse: String = response.entity.asString(HttpCharsets.`UTF-8`)
-        if (response.status.isFailure) log.error(s"Received unexpected status ${response.status} : ${currencyXmlResponse}")
-        log.info(s"OK, received ${currencyXmlResponse}")
-        val cubeArray = XML.loadString(currencyXmlResponse) \ "Cube" \ "Cube"
-        var currencyMap = (for {
-          eachCube <- cubeArray \ "Cube"
-          currency <- eachCube \ "@currency"
-          rate <- eachCube \ "@rate"
-        } yield (currency.toString -> rate.toString.toDouble)).toMap
+    ) map { response =>
+      val currencyXmlResponse: String = response.entity.asString(HttpCharsets.`UTF-8`)
+      if (response.status.isFailure) log.error(s"Received unexpected status ${response.status} : ${currencyXmlResponse}")
+      log.info(s"OK, received ${currencyXmlResponse}")
 
-        currencyMap += ("EUR" -> 1.0)
-        currencyMap
-      }
-  }
+      val cubeArray = XML.loadString(currencyXmlResponse) \ "Cube" \ "Cube"
+      var currencyMap = (for {
+        eachCube <- cubeArray \ "Cube"
+        currency <- eachCube \ "@currency"
+        rate <- eachCube \ "@rate"
+      } yield (currency.toString -> rate.toString.toDouble)).toMap
 
-  def convertRate(target: String, base: String, curMap: Map[String, Double], currencyAmount: Double): Double = {
-    if (!(curMap.isDefinedAt(base)) || !(curMap.isDefinedAt(target))) {
-      throw new IllegalArgumentException("Currency requested was not available")
-    } else {
-      (curMap(base) / curMap(target) * currencyAmount)
+      currencyMap += ("EUR" -> 1.0)
+      currencyMap
     }
   }
 }
