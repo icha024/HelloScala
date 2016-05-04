@@ -86,7 +86,7 @@ object Pi extends App {
 
     // start the calculation
     master ! Calculate
-    actorRefFactory.actorFor("/user/IO-HTTP/listener-0")
+    system.actorSelection("/user/IO-HTTP/listener-0")
 
   }
 }
