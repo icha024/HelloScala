@@ -49,12 +49,12 @@ trait ForexService extends HttpService {
       }
     } ~
       get {
-        // http://localhost:8080/convert/NZD/GBP
+        // http://localhost:8080/NZD/GBP
         path(Segment / Segment) {
           respondWithMediaType(`text/plain`)
           (baseCurrency, targetCurrency) => convertFromCachedCurrencyMap(baseCurrency, targetCurrency, 1.0)
         } ~
-          // http://localhost:8080/convert/NZD/GBP/13
+          // http://localhost:8080/NZD/GBP/13
           path(Segment / Segment / Segment) {
             respondWithMediaType(`text/plain`)
             (baseCurrency, targetCurrency, currencyAmount) => {
