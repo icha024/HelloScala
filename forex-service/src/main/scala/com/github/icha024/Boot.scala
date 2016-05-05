@@ -9,6 +9,8 @@ import akka.util.Timeout
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
+import akka.actor.{Props, ActorSystem}
+import spray.servlet.WebBoot
 
 object Boot {
 
@@ -27,3 +29,17 @@ object Boot {
     IO(Http) ? Http.Bind(service, interface = "0.0.0.0", port = Option(System.getenv("PORT")).getOrElse("8080").toInt)
   }
 }
+
+//class Boot extends WebBoot { // Create a WAR file
+//
+//  // we need an ActorSystem to host our application in
+//  val system = ActorSystem("example")
+//
+//  // the service actor replies to incoming HttpRequests
+//  val serviceActor = system.actorOf(Props[ForexServiceActor])
+//
+//  system.registerOnTermination {
+//    // put additional cleanup code here
+//    system.log.info("Application shut down")
+//  }
+//}
