@@ -24,6 +24,6 @@ libraryDependencies ++= {
 }
 
 // For war file
-//enablePlugins(JettyPlugin)
+enablePlugins(JettyPlugin)
 
 Revolver.settings
