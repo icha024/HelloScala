@@ -63,10 +63,10 @@ trait ForexService extends HttpService {
   def convertFromCachedCurrencyMap(baseCurrency: String, targetCurrency: String, currencyAmount: String = "1.0"): Route =
     onSuccess(
       cachedFetchCurrencies.map(
-        currencyMap => calculateRate(currencyMap, baseCurrency, targetCurrency, currencyAmount)))(rate => complete(rate))
+        currencyMap => calculateRate(currencyMap, baseCurrency, targetCurrency, currencyAmount)))(result => complete(result))
 
   def calculateRate(currencyMap: Map[String, Double], baseCurrency: String, targetCurrency: String, currencyAmount: String): String = {
-    Try((currencyMap(baseCurrency) / currencyMap(targetCurrency) * currencyAmount.toDouble).toString) recover {
+    Try((currencyMap(targetCurrency) / currencyMap(baseCurrency) * currencyAmount.toDouble).toString) recover {
       case ex: NumberFormatException => log.error("Error parsing amount: " + ex.getMessage, ex)
         "Error parsing amount"
       case ex: NoSuchElementException => log.error("Currency symbol not available: " + ex.getMessage, ex)
