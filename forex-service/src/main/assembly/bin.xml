@@ -17,10 +17,10 @@
 			</excludes>
 		</fileSet>
 		<fileSet>
-			<directory>target/generated-resources/appassembler/booter-unix/etc</directory>
-			<outputDirectory>etc</outputDirectory>
+			<directory>target/</directory>
+			<outputDirectory>lib</outputDirectory>
 			<includes>
-				<include>my-server.xml</include>
+				<include>${project.name}-${project.version}.jar</include>
 			</includes>
 		</fileSet>
 		<fileSet>
