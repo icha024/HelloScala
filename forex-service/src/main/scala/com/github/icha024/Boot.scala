@@ -10,7 +10,7 @@ import akka.util.Timeout
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 import akka.actor.{Props, ActorSystem}
-import spray.servlet.WebBoot
+//import spray.servlet.WebBoot
 
 object Boot {
 
