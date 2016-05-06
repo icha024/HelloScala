@@ -88,7 +88,7 @@
 				</configuration>
 			</plugin>
 
-			<!-- Put artifact + dependencies in 'appassemble' directory and generate start script -->
+			<!-- Put dependencies in 'appassembler/lib' directory and generate start script in 'appassembler/bin' -->
 			<plugin>
 				<groupId>org.codehaus.mojo</groupId>
 				<artifactId>appassembler-maven-plugin</artifactId>
@@ -113,7 +113,8 @@
 				</executions>
 			</plugin>
 
-			<!-- Zip 'appassemble' directory, this is the 'distZip' style format gradle would generate -->
+			<!-- Put the artifact in 'appassemble/lib', then zip whole 'appassemble' directory.
+			 	This creates a 'distZip' style bundle similar to Gradle's -->
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-assembly-plugin</artifactId>
