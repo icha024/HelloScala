@@ -66,11 +66,6 @@
 	</dependencies>
 	<build>
 		<sourceDirectory>src/main/scala</sourceDirectory>
-		<resources>
-			<resource>
-				<directory>src/main/resources</directory>
-			</resource>
-		</resources>
 		<plugins>
 			<!-- Compile Scala -->
 			<plugin>
@@ -118,7 +113,7 @@
 				</executions>
 			</plugin>
 
-			<!-- Bundle everything in a 'distZip' format -->
+			<!-- Zip 'appassemble' directory, this is the 'distZip' style format gradle would generate -->
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-assembly-plugin</artifactId>
