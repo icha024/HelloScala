@@ -1,3 +1,0 @@
-applications:
-- path: target/scala-2.11/forex-service_2.11-0.1.war
-  memory: 512M
