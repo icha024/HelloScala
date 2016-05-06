@@ -3,11 +3,11 @@
 	<modelVersion>4.0.0</modelVersion>
 
 	<groupId>com.github.icha024</groupId>
-	<artifactId>spray-first-service</artifactId>
+	<artifactId>forex-service</artifactId>
 	<version>1.0-SNAPSHOT</version>
 	<packaging>jar</packaging>
 
-	<name>spray-first-service</name>
+	<name>forex-service</name>
 	<url>http://maven.apache.org</url>
 
 	<properties>
@@ -113,7 +113,7 @@
 				</executions>
 			</plugin>
 
-			<!-- Put the artifact in 'appassemble/lib', then zip whole 'appassemble' directory.
+			<!-- Zip whole 'appassemble' directory, then put the project artifact in the zip's 'appassemble/lib'
 			 	This creates a 'distZip' style bundle similar to Gradle's -->
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
