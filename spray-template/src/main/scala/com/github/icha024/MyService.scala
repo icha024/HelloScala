@@ -16,6 +16,7 @@ import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, _}
 import scala.xml.XML
 import spray.routing.directives.CachingDirectives._
+import com.google.gson.Gson
 
 // we don't implement our route structure directly in the service actor because
 // we want to be able to test it independently, without having to spin up an actor
@@ -45,6 +46,9 @@ trait MyService extends HttpService {
     implicit val resultFormat = jsonFormat2(NestedResult.apply)
     implicit val respFormat = jsonFormat4(Resp.apply)
   }
+
+  case class Boot(size: Int, description: String)
+  case class Car(brand: String, wheels: Int, boot: Boot)
 
   val simpleCache = routeCache(maxCapacity = 1000, timeToIdle = Duration("5 min"))
 
@@ -99,7 +103,7 @@ trait MyService extends HttpService {
         path("greet") {
           // Caching at this level still works for *some*.
           CachingDirectives.cache(simpleCache) { // Delegates to cache control (See: http://spray.io/documentation/1.2.3/spray-routing/caching-directives/cache/)
-            println("doing work with xml (nocache)") // This will neven be printed with with no cache
+            println("doing work with xml (nocache)") // This will never be printed with with no cache
             parameter('name) {
               (firstName) => complete {
                 println("more work with xml on complete (nocache)") // This invoked everytime (?)
@@ -131,6 +135,27 @@ trait MyService extends HttpService {
           complete {
             // Convert object -> string -> object -> string
             Resp("EUR", "NZD", 0.777, NestedResult("0", "Success")).toJson.compactPrint.parseJson.convertTo[Resp].toJson.toString()
+          }
+        }
+      } ~
+      get {
+        // http://localhost:8080/json2
+        path("gson") {
+          complete {
+            // Convert object -> string -> object -> string
+            val gson = new Gson()
+            gson.toJson(Car("Tesla", 4, Boot(12, "spacious")))
+          }
+        }
+      } ~
+      get {
+        // http://localhost:8080/json2
+        path("gson2") {
+
+          complete {
+            // Convert object -> string -> object -> string
+            val gson = new Gson()
+            gson.fromJson[Car]("{\"brand\":\"Tesla\",\"wheels\":3,\"boot\":{\"size\":12,\"description\":\"spacious\"}}", classOf[Car]).boot.description
           }
         }
       } ~
@@ -218,9 +243,9 @@ trait MyService extends HttpService {
     Thread.sleep(1000) // can trigger timeout on server if < 1sec.
     // Handle using error handler, see: http://spray.io/documentation/1.2.3/spray-routing/key-concepts/timeout-handling/
     /** The limit to wait for server is set in application.conf:
-         spray.can.server {
-          request-timeout = 2s
-        }
+      * spray.can.server {
+      * request-timeout = 2s
+      * }
       */
 
     fetchCurrencies

@@ -16,6 +16,7 @@ libraryDependencies ++= {
     "io.spray"            %%  "spray-caching" % sprayV,
     "io.spray"            %%  "spray-client"  % sprayV,
     "io.spray"            %%  "spray-testkit" % sprayV  % "test",
+    "com.google.code.gson" % "gson"          % "2.6.2",
     "com.typesafe.akka"   %%  "akka-actor"    % akkaV,
     "com.typesafe.akka"   %%  "akka-testkit"  % akkaV   % "test",
     "org.specs2"          %%  "specs2-core"   % "2.3.11" % "test"
